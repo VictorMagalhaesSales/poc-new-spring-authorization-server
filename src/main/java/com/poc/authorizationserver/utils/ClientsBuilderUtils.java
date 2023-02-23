@@ -1,5 +1,6 @@
 package com.poc.authorizationserver.utils;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -7,6 +8,7 @@ import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 
 public class ClientsBuilderUtils {
 	
@@ -43,8 +45,30 @@ public class ClientsBuilderUtils {
 				
 				.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
 				.redirectUri("https://oidcdebugger.com/debug")
+				.redirectUri("https://oauth.pstmn.io/v1/callback")
 				.scope("read")
-				.clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
+				.clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
+				.build();
+	}
+	
+	public static RegisteredClient secretBasicAuthCodeWithRefresh() {
+		return RegisteredClient.withId(UUID.randomUUID().toString())
+				.clientId("my-client-basic-code-refresh")
+				.clientSecret("{noop}my-client-basic-code-refresh")
+				.clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+				
+				.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+				.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+				.redirectUri("https://oidcdebugger.com/debug")
+				.scope("read")
+				.clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
+				
+				.tokenSettings(TokenSettings.builder()
+						.accessTokenTimeToLive(Duration.ofMinutes(5))
+						.refreshTokenTimeToLive(Duration.ofDays(1))
+						.reuseRefreshTokens(false)
+						.build())
+				
 				.build();
 	}
 

@@ -62,8 +62,9 @@ public class AuthorizationServerConfig {
 	public RegisteredClientRepository registeredClientRepository() {	
 		return new InMemoryRegisteredClientRepository(
 				ClientsBuilderUtils.secretPostCredentials(),
+				ClientsBuilderUtils.secretBasicCredentials(),
 				ClientsBuilderUtils.secretBasicAuthCode(),
-				ClientsBuilderUtils.secretBasicAuthCode());
+				ClientsBuilderUtils.secretBasicAuthCodeWithRefresh());
 	}
 	
 	@Bean 
