@@ -10,7 +10,6 @@
 		<relativePath/>
 	</parent>
 	
-	
 	<groupId>com.poc.authorization-server</groupId>
 	<artifactId>poc-new-spring-authorization-server</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -21,10 +20,10 @@
 	<properties>
 		<java.version>17</java.version>
 	</properties>
-
+	
 	<modules>
 		<module>authorization-server</module>
+		<module>resource-server</module>
 	</modules>
-	
 	
 </project>

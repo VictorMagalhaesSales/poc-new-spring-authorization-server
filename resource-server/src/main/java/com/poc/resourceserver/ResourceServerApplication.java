@@ -1,13 +1,13 @@
-package com.poc.authorizationserver;
+package com.poc.resourceserver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PocSpringAuthorizationServerApplication {
+public class ResourceServerApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(PocSpringAuthorizationServerApplication.class, args);
+		SpringApplication.run(ResourceServerApplication.class, args);
 	}
 
 }

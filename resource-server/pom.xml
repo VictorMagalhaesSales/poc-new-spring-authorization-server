@@ -2,13 +2,13 @@
 	 <modelVersion>4.0.0</modelVersion>
 	 
 	 <parent>
-	   <groupId>com.poc.authorization-server</groupId>
-	   <artifactId>poc-new-spring-authorization-server</artifactId>
-	   <version>0.0.1-SNAPSHOT</version>
+		<groupId>com.poc.authorization-server</groupId>
+		<artifactId>poc-new-spring-authorization-server</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
 	 </parent>
 	 
-	 <artifactId>authorization-server</artifactId>
-	 <name>authorization-server</name>
+	 <artifactId>resource-server</artifactId>
+	 <name>resource-server</name>
 	 <packaging>war</packaging>
 	 
 	<dependencies>
@@ -16,15 +16,9 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-oauth2-authorization-server</artifactId>
-			<version>1.0.0</version>
 		</dependency>
 	</dependencies>
 	
@@ -36,5 +30,5 @@
 			</plugin>
 		</plugins>
 	</build>
-	
+  
 </project>
