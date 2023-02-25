@@ -1,0 +1,7 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Authorization Server URL
+          issuer-uri: http://localhost:8081/api
