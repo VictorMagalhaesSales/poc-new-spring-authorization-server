@@ -25,11 +25,14 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Acce
 import org.springframework.security.oauth2.server.authorization.token.OAuth2RefreshTokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.poc.authorizationserver.interceptors.CookieRefreshTokenExtractionInterceptor;
+import com.poc.authorizationserver.interceptors.CookieRefreshTokenInsertionInterceptor;
 import com.poc.authorizationserver.security.password.CustomPasswordAuthenticationConverter;
 import com.poc.authorizationserver.security.password.CustomPasswordAuthenticationProvider;
 import com.poc.authorizationserver.utils.ClientsBuilderUtils;
@@ -50,11 +53,17 @@ public class AuthorizationServerConfig {
 			.oidc(Customizer.withDefaults())
 
     		.tokenEndpoint(tokenEndpointConfig -> tokenEndpointConfig
+        			// Refresh Token in Cookie interceptor
+    	    		.accessTokenResponseHandler(new CookieRefreshTokenInsertionInterceptor())
+    	    		
     				// Custom "password" flow config
     				.accessTokenRequestConverter(new CustomPasswordAuthenticationConverter())
     				.authenticationProvider(new CustomPasswordAuthenticationProvider(createAuthService(http), createTokenGenerator(http), daoAuthProvider)));
 
-		// Accept access tokens for User Info and/or Client Registration
+		// Refresh Token in Cookie interceptor
+        http.addFilterBefore(new CookieRefreshTokenExtractionInterceptor(), AuthorizationFilter.class);
+        
+        // Accept access tokens for User Info and/or Client Registration
 		http.oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt);
 
 		return http.build();
