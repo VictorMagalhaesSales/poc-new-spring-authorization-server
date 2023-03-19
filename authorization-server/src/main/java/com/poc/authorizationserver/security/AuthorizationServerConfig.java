@@ -3,43 +3,56 @@ package com.poc.authorizationserver.security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.security.oauth2.server.authorization.token.DelegatingOAuth2TokenGenerator;
+import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2AccessTokenGenerator;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2RefreshTokenGenerator;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.poc.authorizationserver.security.password.CustomPasswordAuthenticationConverter;
+import com.poc.authorizationserver.security.password.CustomPasswordAuthenticationProvider;
 import com.poc.authorizationserver.utils.ClientsBuilderUtils;
 import com.poc.authorizationserver.utils.JwtUtils;
 
 @Configuration
 public class AuthorizationServerConfig {
-
 	
 	@Bean 
 	@Order(1)
-	public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http,
+			DaoAuthenticationProvider daoAuthProvider) throws Exception {
 		// Default Configurations
 		OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 		
-		// Enable OpenID Connnect 1.0
 		http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-			.oidc(Customizer.withDefaults());
+			// Enable OpenID Connnect 1.0
+			.oidc(Customizer.withDefaults())
 
-		// Redirect to the login page when not authenticated from the authorization endpoint
-		http.exceptionHandling(
-			exceptions -> exceptions.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login"))
-		);
+    		.tokenEndpoint(tokenEndpointConfig -> tokenEndpointConfig
+    				// Custom "password" flow config
+    				.accessTokenRequestConverter(new CustomPasswordAuthenticationConverter())
+    				.authenticationProvider(new CustomPasswordAuthenticationProvider(createAuthService(http), createTokenGenerator(http), daoAuthProvider)));
 
 		// Accept access tokens for User Info and/or Client Registration
 		http.oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt);
@@ -48,12 +61,13 @@ public class AuthorizationServerConfig {
 	}
 
 	@Bean
-	public RegisteredClientRepository registeredClientRepository() {	
+	public RegisteredClientRepository registeredClientRepository(PasswordEncoder encoder) {	
 		return new InMemoryRegisteredClientRepository(
-				ClientsBuilderUtils.secretPostCredentials(),
-				ClientsBuilderUtils.secretBasicCredentials(),
-				ClientsBuilderUtils.secretBasicAuthCode(),
-				ClientsBuilderUtils.secretBasicAuthCodeWithRefresh());
+				ClientsBuilderUtils.secretPostCredentials(encoder),
+				ClientsBuilderUtils.secretBasicCredentials(encoder),
+				ClientsBuilderUtils.secretBasicAuthCode(encoder),
+				ClientsBuilderUtils.secretBasicAuthCodeWithRefresh(encoder),
+				ClientsBuilderUtils.secretBasicPasswordWithRefresh(encoder));
 	}
 	
 	@Bean 
@@ -70,6 +84,29 @@ public class AuthorizationServerConfig {
 	@Bean 
 	public AuthorizationServerSettings authorizationServerSettings() {
 		return AuthorizationServerSettings.builder().build();
+	}
+	
+	
+	/* Utilities methods */
+	
+	private OAuth2AuthorizationService createAuthService(HttpSecurity httpSecurity) {
+		OAuth2AuthorizationService authorizationService = new InMemoryOAuth2AuthorizationService();
+		httpSecurity.setSharedObject(OAuth2AuthorizationService.class, authorizationService);
+		return authorizationService;
+	}
+	
+	private OAuth2TokenGenerator<? extends OAuth2Token> createTokenGenerator(HttpSecurity httpSecurity) {
+		JWKSource<SecurityContext> jwkSource = jwkSource();
+		JwtEncoder jwtEncoder = new NimbusJwtEncoder(jwkSource);
+		JwtGenerator jwtGenerator = new JwtGenerator(jwtEncoder);
+		
+		OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator = 
+				new DelegatingOAuth2TokenGenerator(jwtGenerator, new OAuth2AccessTokenGenerator(), new OAuth2RefreshTokenGenerator());
+		
+		httpSecurity.setSharedObject(OAuth2TokenGenerator.class, tokenGenerator);
+		httpSecurity.setSharedObject(JwtGenerator.class, jwtGenerator);
+		httpSecurity.setSharedObject(JwtEncoder.class, jwtEncoder);
+		return tokenGenerator;
 	}
 
 }
