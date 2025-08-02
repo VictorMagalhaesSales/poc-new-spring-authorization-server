@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
@@ -41,8 +42,9 @@ public class CustomPasswordAuthSuccessHandler implements AuthenticationSuccessHa
 		OAuth2AccessToken accessToken = tokenAuthentication.getAccessToken();
 		OAuth2RefreshToken refreshToken = tokenAuthentication.getRefreshToken();
 		Map<String, Object> additionalParams = tokenAuthentication.getAdditionalParameters();
-		
-		insertRefreshTokenInCookie(refreshToken, request, response);
+
+        assert refreshToken != null;
+        insertRefreshTokenInCookie(refreshToken, request, response);
 
 		OAuth2AccessTokenResponse accessTokenResponse = buildTokenResponse(accessToken, additionalParams);
 
@@ -50,7 +52,8 @@ public class CustomPasswordAuthSuccessHandler implements AuthenticationSuccessHa
 	}
 
 	private static boolean isDifferentFromPasswordGrantType(HttpServletRequest request) {
-		return !Objects.equals(request.getParameterValues(OAuth2ParameterNames.GRANT_TYPE)[0], CustomAuthorizationGrantType.PASSWORD.getValue());
+		return !Objects.equals(request.getParameterValues(OAuth2ParameterNames.GRANT_TYPE)[0], CustomAuthorizationGrantType.PASSWORD.getValue()) &&
+				!Objects.equals(request.getParameterValues(OAuth2ParameterNames.GRANT_TYPE)[0], AuthorizationGrantType.REFRESH_TOKEN.getValue());
 	}
 
 	private OAuth2AccessTokenResponse buildTokenResponse(OAuth2AccessToken accessToken, Map<String, Object> additionalParams) {
