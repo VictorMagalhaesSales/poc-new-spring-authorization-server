@@ -1,4 +1,4 @@
-package com.poc.authorizationserver.interceptors;
+package com.poc.authorizationserver.security.interceptors;
 
 import java.io.IOException;
 import java.util.Map;
@@ -13,7 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 
-public class CookieRefreshTokenExtractionInterceptor extends OncePerRequestFilter {
+public class CookieRefreshTokenExtractionFilter extends OncePerRequestFilter {
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -37,8 +37,8 @@ public class CookieRefreshTokenExtractionInterceptor extends OncePerRequestFilte
 	
 	static class MyServletRequestWrapper extends HttpServletRequestWrapper {
 
-		private String refreshToken;
-		private String refreshTokenLocation;
+		private final String refreshToken;
+		private final String refreshTokenLocation;
 		
 		public MyServletRequestWrapper(HttpServletRequest request, String refreshToken, String refreshTokenLocation) {
 			super(request);

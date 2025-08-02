@@ -31,8 +31,8 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-import com.poc.authorizationserver.interceptors.CookieRefreshTokenExtractionInterceptor;
-import com.poc.authorizationserver.interceptors.CookieRefreshTokenInsertionInterceptor;
+import com.poc.authorizationserver.security.interceptors.CookieRefreshTokenExtractionFilter;
+import com.poc.authorizationserver.security.password.CustomPasswordAuthSuccessHandler;
 import com.poc.authorizationserver.security.password.CustomPasswordAuthenticationConverter;
 import com.poc.authorizationserver.security.password.CustomPasswordAuthenticationProvider;
 import com.poc.authorizationserver.utils.ClientsBuilderUtils;
@@ -64,11 +64,11 @@ public class AuthorizationServerConfig {
 					// Authenticate user and generate tokens
 					.authenticationProvider(new CustomPasswordAuthenticationProvider(createAuthService(http), createTokenGenerator(http), daoAuthProvider))
 					// Prepare response with tokens
-					.accessTokenResponseHandler(new CookieRefreshTokenInsertionInterceptor())
+					.accessTokenResponseHandler(new CustomPasswordAuthSuccessHandler())
 			);
 
 		// "Extract RefreshToken from Cookie" filter
-		http.addFilterBefore(new CookieRefreshTokenExtractionInterceptor(), AuthorizationFilter.class);
+		http.addFilterBefore(new CookieRefreshTokenExtractionFilter(), AuthorizationFilter.class);
         
         // Accept access tokens for User Info and/or Client Registration
 		http.oauth2ResourceServer(rsConfigurer -> rsConfigurer.jwt(Customizer.withDefaults()));
