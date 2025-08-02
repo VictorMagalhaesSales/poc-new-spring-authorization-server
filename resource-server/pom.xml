@@ -9,7 +9,7 @@
 	 
 	 <artifactId>resource-server</artifactId>
 	 <name>resource-server</name>
-	 <packaging>war</packaging>
+	 <packaging>jar</packaging>
 	 
 	<dependencies>
 		<dependency>

@@ -6,7 +6,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -26,6 +25,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Refr
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -45,26 +45,33 @@ public class AuthorizationServerConfig {
 	@Order(1)
 	public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http,
 			DaoAuthenticationProvider daoAuthProvider) throws Exception {
-		// Default Configurations
-		OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-		
+		// Basic Auth Server Configurations
+		OAuth2AuthorizationServerConfigurer authServerConfigurer =
+			OAuth2AuthorizationServerConfigurer.authorizationServer();
+		http
+			.securityMatcher(authServerConfigurer.getEndpointsMatcher())
+			.authorizeHttpRequests((authorize) ->
+				authorize.anyRequest().authenticated()
+			)
+			.with(authServerConfigurer, configurer ->
+				configurer.oidc(Customizer.withDefaults()));
+
+		// Custom Password Flow Configurations
 		http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-			// Enable OpenID Connnect 1.0
-			.oidc(Customizer.withDefaults())
+			.tokenEndpoint(tokenEndpointConfigurer -> tokenEndpointConfigurer
+					// Preparing flow
+					.accessTokenRequestConverter(new CustomPasswordAuthenticationConverter())
+					// Authenticate user and generate tokens
+					.authenticationProvider(new CustomPasswordAuthenticationProvider(createAuthService(http), createTokenGenerator(http), daoAuthProvider))
+					// Prepare response with tokens
+					.accessTokenResponseHandler(new CookieRefreshTokenInsertionInterceptor())
+			);
 
-    		.tokenEndpoint(tokenEndpointConfig -> tokenEndpointConfig
-        			// Refresh Token in Cookie interceptor
-    	    		.accessTokenResponseHandler(new CookieRefreshTokenInsertionInterceptor())
-    	    		
-    				// Custom "password" flow config
-    				.accessTokenRequestConverter(new CustomPasswordAuthenticationConverter())
-    				.authenticationProvider(new CustomPasswordAuthenticationProvider(createAuthService(http), createTokenGenerator(http), daoAuthProvider)));
-
-		// Refresh Token in Cookie interceptor
-        http.addFilterBefore(new CookieRefreshTokenExtractionInterceptor(), AuthorizationFilter.class);
+		// "Extract RefreshToken from Cookie" filter
+		http.addFilterBefore(new CookieRefreshTokenExtractionInterceptor(), AuthorizationFilter.class);
         
         // Accept access tokens for User Info and/or Client Registration
-		http.oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt);
+		http.oauth2ResourceServer(rsConfigurer -> rsConfigurer.jwt(Customizer.withDefaults()));
 
 		return http.build();
 	}
